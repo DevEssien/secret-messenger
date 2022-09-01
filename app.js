@@ -38,7 +38,8 @@ mongoose.connect('mongodb://localhost:27017/userDB', {useNewUrlParser: true});
 const userSchema = new mongoose.Schema({
     email: String,
     password: String,
-    thirdPartyId: String
+    thirdPartyId: String,
+    secret: String
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -126,7 +127,7 @@ app.route('/register')
             res.redirect('/register');
         } else {
             passport.authenticate('local')(req, res, () => {
-                res.redirect('/secret');
+                res.redirect('/secrets');
             });
         }
     });
@@ -155,16 +156,45 @@ app.route('/login')
     });
 });
 
-app.get('/submit', (req, res) => {
-    res.render('submit');
-});
-
-app.get('/secrets', (req, res) => {
+app.route('/submit')
+.get((req, res) => {
     if (req.isAuthenticated()) {
-        res.render('secrets');
+        res.render('submit');
     } else {
         res.redirect('/login');
     }
+})
+.post((req, res) => {
+    const submittedSecret = req.body.secret;
+    const userId = req.user._id;
+    User.findById({_id: userId}, (err, foundUser) => {
+        if (err) {
+            console.log(err);
+        } else {
+            if (foundUser) {
+                foundUser.secret = submittedSecret;
+                foundUser.save((err) => {                //foundUser is a variable for the User model. thus foundUser is the db model inside the callback
+                    if (!err) {
+                        res.redirect('/secrets');
+                    } else {
+                        console.log(err)
+                    }
+                });
+            }
+        }
+    });
+});
+
+app.get('/secrets', (req, res) => {
+    User.find({'secret': {$ne: null}}, (err, foundUsers) => {
+        if (err) {
+            console.log(err);
+        } else {
+            if (foundUsers) {
+                res.render('secrets', {usersWithSecrets: foundUsers});
+            }
+        }
+    });
 });
 
 app.get('/logout', (req, res) => {
