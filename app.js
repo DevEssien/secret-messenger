@@ -24,7 +24,7 @@ app.use(express.static('public'));
 
 //setting up sessions
 app.use(session({
-    secret: 'Iwillupdatemysecret_later.',
+    secret: process.env.SECRET,
     resave: false,
     saveUninitialized: false
 }));
